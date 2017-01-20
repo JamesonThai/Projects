@@ -1,0 +1,436 @@
+import java.util.ArrayList;
+
+/**
+ * Airplane base class
+ * 
+ * @author Jameson Thai
+ *
+ */
+public class Airplane {
+
+	Passenger[][] eco, fir;
+	ArrayList<Integer> avalEco, avalFir;
+	int rowE, colE, rowF, colF;
+
+	/**
+	 * Constructor of Airplane
+	 */
+	public Airplane() {
+		eco = new Passenger[20][6];
+		fir = new Passenger[2][4];
+		avalEco = new ArrayList<Integer>();
+		avalFir = new ArrayList<Integer>();
+
+		rowE = 20;
+		colE = 6;
+		rowF = 2;
+		colF = 4;
+		for (int i = 0; i < 2; i++) {
+			avalFir.add(4);
+		}
+		for (int i = 0; i < rowE; i++) {
+			avalEco.add(6);
+		}
+	}
+
+	/**
+	 * Adding in passenger if possible in First class
+	 * 
+	 * @param seatpref
+	 *            Seat preference of passenger
+	 * @param plane
+	 *            Airplane
+	 * @param p
+	 *            Passenger being added
+	 * @return returns reserved seat if possible
+	 */
+	public String firstPas(String seatpref, Airplane plane, Passenger p) {
+		String seat, one;
+		seat = "Request denied";
+
+		for (int i = 0; i < plane.rowF; i++) {
+			for (int j = 0; j < plane.colF; j++) {
+				if (plane.fir[i][j] == null && seatpref.equals("W") && (j == 0 || j == 3)) {
+					one = Integer.toString(i + 1);
+					seat = one + Converter(j, "First");
+					plane.fir[i][j] = p;
+					i = rowF;
+					j = colF;
+				} else if (plane.fir[i][j] == null && seatpref.equals("A") && (j == 1 || j == 2)) {
+					one = Integer.toString(i + 1);
+					seat = one + Converter(j, "First");
+					plane.fir[i][j] = p;
+					i = rowF;
+					j = colF;
+				}
+			}
+		}
+		return seat;
+	}
+
+	/**
+	 * Converts column to letter equivalent
+	 * 
+	 * @param x
+	 *            Number being converted
+	 * @param cl
+	 *            Check for class type
+	 * @return returns converted value
+	 */
+	public String Converter(int x, String cl) {
+		if (x == 0)
+			return "A";
+		else if (x == 1)
+			return "B";
+		else if (x == 2)
+			return "C";
+		else if (x == 3)
+			return "D";
+		else if (x == 4 && cl != "First")
+			return "E";
+		else if (x == 5 && cl != "First")
+			return "F";
+		return null;
+	}
+
+	/**
+	 * Books passenger in economy if possible
+	 * 
+	 * @param seatPref
+	 *            Seat preference of passenger
+	 * @param plane
+	 *            Airplane
+	 * @param p
+	 *            Passenger containing information
+	 * @return returns String of reserved seat
+	 */
+	public String ecoPas(String seatPref, Airplane plane, Passenger p) {
+		String seat, one;
+		seat = "Request Denied";
+
+		for (int i = 0; i < plane.rowE; i++) {
+			for (int j = 0; j < plane.colE; j++) {
+				if (plane.eco[i][j] == null && seatPref.equals("W") && (j == 0 || j == 5)) {
+					one = Integer.toString(i + 9); // or is it i + 10
+					seat = one + Converter(j, "Economy");
+					plane.eco[i][j] = p;
+					i = rowE;
+					j = colE;
+				} else if (plane.eco[i][j] == null && seatPref.equals("A") && (j == 2 || j == 3)) {
+					one = Integer.toString(i + 9);
+					seat = one + Converter(j, "Economy");
+					plane.eco[i][j] = p;
+					i = rowE;
+					j = colE;
+				} else if (plane.eco[i][j] == null && seatPref.equals("C") && (j == 1 || j == 4)) {
+					one = Integer.toString(i + 9);
+					seat = one + Converter(j, "Economy");
+					plane.eco[i][j] = p;
+					i = rowE;
+					j = colE;
+				}
+			}
+		}
+		return seat;
+	}
+
+	/**
+	 * books passengers in first if possible
+	 * 
+	 * @param list
+	 *            List containing adjacent rows
+	 * @param plane
+	 *            Airplane
+	 * @return returns string with reserved seats
+	 */
+	public String fiGroPas(ArrayList<Passenger> list, Airplane plane) {
+		String seat, one, fin;
+		int len;
+		int x, y, count, temp1, total, pepnum;
+
+		seat = "Request Denied";
+		fin = "";
+		len = list.size();
+		x = 0;
+		y = 0;
+		count = 0;
+		pepnum = 0;
+
+		plane.updateListIndex(plane, "First");
+		total = plane.checkAvalabilty("First", plane);
+		temp1 = plane.getLargestIndex(avalFir);
+
+		if (len > 0 && len <= 8 && (total >= len || total - 1 == len)) {
+			count = 1;
+			while (len > 0) {
+				if (len == 1 && checkLargestSeatLeft(plane.avalFir) == 1) {
+
+					for (int j = 0; j < plane.colF; j++) {
+						if (plane.fir[temp1][j] == null) {
+							one = Integer.toString(temp1 + 1);
+							seat = one + Converter(j, "First");
+							fin += seat + " ";
+							plane.fir[x][j] = list.get(pepnum);
+							pepnum++;
+							count--;
+						}
+					}
+				} else {
+					for (int j = 0; j < plane.colF - 1 && len > 0; j++) {
+						if (plane.fir[temp1][j] == null && plane.fir[temp1][j + 1] == null) {
+							count++;
+							x = temp1;
+							y = j + 1;
+						}
+
+					}
+					if (count > 1) {
+						for (int j = y; count > 0 && pepnum < list.size(); j--) {
+							one = Integer.toString(x + 1);
+							seat = one + Converter(j, "First");
+							fin += seat + " ";
+							plane.fir[x][j] = list.get(pepnum);
+							pepnum++;
+							count--;
+						}
+					}
+				}
+
+				plane.updateListIndex(plane, "First");
+				total = plane.checkAvalabilty("First", plane);
+				temp1 = plane.getLargestIndex(avalFir);
+				len -= count;
+				count = 1;
+
+			}
+			seat = fin;
+		}
+		return seat;
+	}
+
+	/**
+	 * Books passengers in economy if possible
+	 * 
+	 * @param list
+	 *            List containing adjacent rows
+	 * @param plane
+	 *            Airplane
+	 * @return String of reserved seats
+	 */
+	public String ecoGroPas(ArrayList<Passenger> list, Airplane plane) {
+
+		String seat, one, fin;
+		int len;
+		int x, y, count, temp1, total, pepnum;
+
+		seat = "Request Denied";
+		fin = "";
+		len = list.size();
+		x = 0;
+		y = 0;
+		count = 1;
+		pepnum = 0;
+
+		plane.updateListIndex(plane, "Economy");
+		total = plane.checkAvalabilty("Economy", plane);
+		temp1 = plane.getLargestIndex(avalEco);
+
+		if (len > 0 && len <= (rowE * colE) && total >= len) {
+			while (len > 0) {
+				// handling event where each index only has one seat left
+				if (len == 1 && checkLargestSeatLeft(plane.avalEco) == 1) {
+					for (int j = 0; j < plane.colE; j++) {
+						if (plane.eco[temp1][j] == null) {
+							one = Integer.toString(temp1 + 1);
+							seat = one + Converter(j, "Economy");
+							fin += seat + " ";
+							plane.eco[x][j] = list.get(pepnum);
+							pepnum++;
+							count--;
+						}
+					}
+				} else {
+					for (int j = 0; j < plane.colE - 1 && len > 0; j++) {
+						if (plane.eco[temp1][j] == null && plane.eco[temp1][j + 1] == null) {
+							count++;
+							x = temp1;
+							y = j + 1;
+						}
+					}
+
+					if (count > 1) {
+						for (int j = y; count > 0 && pepnum < list.size(); j--) {
+							one = Integer.toString(x + 10);
+							seat = one + Converter(j, "Eco");
+							fin += seat + " ";
+							plane.eco[x][j] = list.get(pepnum);
+							pepnum++;
+							count--;
+						}
+					}
+				}
+
+				plane.updateListIndex(plane, "Economy");
+				total = plane.checkAvalabilty("Eco", plane);
+				temp1 = plane.getLargestIndex(avalEco);
+				len -= pepnum;
+				count = 1;
+			}
+			seat = fin;
+		}
+		return seat;
+	}
+
+	/**
+	 * Checks for largest seat left in the arraylist
+	 * 
+	 * @param list
+	 *            The arraylist containing rows with adjacent seating
+	 * @return returns the largest row with adjacent seating
+	 */
+	public int checkLargestSeatLeft(ArrayList<Integer> list) {
+		int num = 0;
+		for (int i = 0; i < list.size(); i++) {
+			if (list.get(i) > num)
+				num = list.get(i);
+		}
+		return num;
+	}
+
+	/**
+	 * updates the list of availability
+	 * 
+	 * @param p
+	 *            Airplane
+	 * @param name
+	 *            Type of class
+	 */
+	private void updateListIndex(Airplane p, String name) {
+		int num = 0;
+		int start = 0;
+		if (name == "Economy") {
+			for (int i = 0; i < p.rowE; i++) {
+				for (int j = 0; j < p.colE - 1; j++) {
+					if (p.eco[i][j] == null && p.eco[i][j + 1] == null) {
+						if (start == 0) {
+							start++;
+							num += 2;
+						} else
+							num++;
+					}
+				}
+				p.avalEco.set(i, num);
+				num = 0;
+				start = 0;
+			}
+		} else if (name == "First") {
+			for (int i = 0; i < p.rowF; i++) {
+				for (int j = 0; j < p.colF - 1; j++) {
+					if (p.fir[i][j] == null && p.fir[i][j + 1] == null) {
+						if (start == 0) {
+							start++;
+							num += 2;
+						} else
+							num++;
+					}
+				}
+				p.avalFir.set(i, num);
+				num = 0;
+				start = 0;
+			}
+		}
+
+	}
+
+	/**
+	 * Checks what is available
+	 * 
+	 * @param name
+	 *            Type of class
+	 * @param p
+	 *            Airplane
+	 * @return returns the total availability
+	 */
+	public int checkAvalabilty(String name, Airplane p) {
+		int num = 0;
+		int total = 0;
+		int start = 0;
+
+		if (name == "First") {
+			for (int i = 0; i < p.rowF; i++) {
+				for (int j = 0; j < p.colF - 1; j++) {
+					if (p.fir[i][j] == null && p.fir[i][j + 1] == null) {
+						if (start == 0) {
+							start++;
+							num += 2;
+						} else
+							num++;
+					}
+				}
+				avalFir.set(i, num);
+				total += num;
+				num = 0;
+				start = 0;
+
+			}
+		} else if (name == "Economy") {
+			for (int i = 0; i < p.rowE; i++) {
+				for (int j = 0; j < p.colE; j++) {
+					if (p.eco[i][j] == null) {
+						num++;
+						total++;
+					}
+				}
+				avalEco.set(i, num);
+				num = 0;
+			}
+		}
+		return total;
+	}
+
+	/**
+	 * Returns the largest index of row size
+	 * 
+	 * @param list
+	 *            List being put in to be checked
+	 * @return Returns the largest index of row size
+	 */
+	public int getLargestIndex(ArrayList<Integer> list) {
+		int num = 0;
+		for (int i = 1; i < list.size(); i++) {
+			if (list.get(i) > list.get(num))
+				num = i;
+		}
+		return num;
+	}
+
+	/**
+	 * Checks for duplicate passengers
+	 * 
+	 * @param p
+	 *            Passenger type
+	 * @param plane
+	 *            Airplane
+	 * @return returns true if there is a duplicate otherwise false
+	 */
+	public boolean checkDuplicate(Passenger p, Airplane plane) {
+
+		for (int i = 0; i < rowF; i++) {
+			for (int j = 0; j < colF; j++) {
+				if (plane.fir[i][j] != null)
+					if (plane.fir[i][j].Name.equals(p.Name))
+						return true;
+
+			}
+		}
+		for (int i = 0; i < rowE; i++) {
+			for (int j = 0; j < colE; j++) {
+				if (plane.eco[i][j] != null)
+					if (plane.eco[i][j].Name.equals(p.Name))
+						return true;
+
+			}
+		}
+		return false;
+	}
+}

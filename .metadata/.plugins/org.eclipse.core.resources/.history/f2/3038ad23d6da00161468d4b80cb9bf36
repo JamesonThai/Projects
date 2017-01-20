@@ -1,0 +1,445 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+/**
+ * 
+ * @author Jameson Thai Goal is to implement reservation system on an airline
+ */
+public class ReservationSystem {
+	
+/**
+ * 
+ * @param args Reading in file at args[]
+ * @throws IOException Throws exception if file no input
+ */
+	public static void main(String[] args) throws IOException {
+
+		String line = "";
+		Airplane plane = new Airplane();
+
+		File in = new File(args[0]);
+		if (in.exists()) {
+			Scanner red = new Scanner(in);
+			while (red.hasNextLine()) {
+
+				line = red.nextLine();
+				String list[] = new String[4];
+				Passenger a = new Passenger();
+				int x = 0;
+				int y = 0;
+				list = line.split(",");
+
+				for (int i = 0; i < list.length; i++) {
+					list[i] = list[i].trim();
+				}
+				x = Integer.parseInt(list[0].substring(0, list[0].length() - 1));
+				char seat = list[0].charAt(list[0].length() - 1);
+
+				if (seat == 'A')
+					y = 0;
+				else if (seat == 'B')
+					y = 1;
+				else if (seat == 'C')
+					y = 2;
+				else if (seat == 'D')
+					y = 3;
+				else if (seat == 'E')
+					y = 4;
+				else if (seat == 'F')
+					y = 5;
+
+				if (list[1].charAt(list[1].length() - 1) == 'I') {
+					a.addName(list[2]);
+				} else if (list[1].charAt(list[1].length() - 1) == 'G') {
+					a.addGrwp(list[2]);
+					a.addName(list[3]);
+				}
+				if (x <= 2 && x > 0) {
+					a.addServiceClass("First");
+					plane.fir[x - 1][y] = a;
+				} else if (x > 9 && x < 30) {
+					a.addServiceClass("Economy");
+					plane.eco[x - 10][y] = a;
+				} else
+					System.out.println("Invalid passenger");
+			}
+			red.close();
+		} else {
+			System.out.println("File not found!");
+			File CL34 = new File("CL34");
+			CL34.createNewFile();
+			System.out.println("File created!");
+		}
+
+		String ch = "A";
+		Scanner sc = new Scanner(System.in);
+
+		while (ch.equals("A")) {
+			System.out.println(
+					"Add [P]assenger, Add [G]roup, [C]ancel Reservations, Print Seating [A]vailability Chart, Print [M]anifest, [Q]uit");
+			;
+
+			String result = "";
+			String a = sc.nextLine();
+			if (a.equals("P")) {
+				Passenger pass = new Passenger();
+				String input = "";
+
+				System.out.println("Name: ");
+				input = sc.nextLine();
+				pass.addName(input);
+				System.out.println("Service Class: ");
+				input = sc.nextLine();
+				pass.addServiceClass(input);
+				System.out.println("Seat Preference: ");
+				input = sc.nextLine();
+				pass.addSeatPreference(input);
+
+				if (plane.checkDuplicate(pass, plane) == true)
+					result = "Duplicate Passenger Request Denied";
+				else
+					result = addPassenger(pass, plane);
+
+				System.out.println(result);
+			} else if (a.equals("G")) {
+				int count = 0;
+				String input = "";
+				String listNames = "";
+				String classType = "";
+				ArrayList<Passenger> inputList = new ArrayList<Passenger>();
+				String[] NamesList = new String[120];
+
+				System.out.println("Group Name: ");
+				input = sc.nextLine();
+
+				System.out.println("Names: ");
+				listNames = sc.nextLine();
+				NamesList = listNames.split(",");
+
+				System.out.println("ServiceClass: ");
+				classType = sc.nextLine();
+
+				for (int i = 0; i < NamesList.length && NamesList[i] != null; i++) {
+					Passenger A = new Passenger();
+					NamesList[i].trim();
+					A.addName(NamesList[i]);
+					A.addGrwp(input);
+					A.addServiceClass(classType);
+					inputList.add(A);
+					if (plane.checkDuplicate(A, plane) == true) {
+						result = "Duplicate Passenger, Request Denied";
+						count++;
+					}
+				}
+				if (count == 0) {
+					result = addGroup(inputList, inputList.get(0), plane);
+				}
+				System.out.println(result);
+			} else if (a.equals("C")) {
+				System.out.println("Cancel [I]ndividual or [G]roup? ");
+				String input = "";
+				String type = "";
+				int count = 0;
+
+				type = sc.nextLine();
+				if (type.equals("I")) {
+					System.out.println("Name: ");
+					input = sc.nextLine();
+				} else if (type.equals("G")) {
+					System.out.println("Group Name: ");
+					input = sc.nextLine();
+				} else {
+					System.out.println("Wrong input");
+					count++;
+				}
+				if (count == 0) {
+					cancelReservations(type, input, plane);
+				}
+			} else if (a.equals("A")) {
+				int count = 0;
+				System.out.println("Service Class: ");
+				String input = sc.nextLine();
+
+				if (input.equals("First") || input.equals("Economy"))
+					count++;
+				else
+					System.out.println("Wrong input");
+				if (count > 0) {
+					printAvailability(input, plane);
+				}
+			} else if (a.equals("M")) {
+				int count = 0;
+				System.out.println("Service Class: ");
+				String input = sc.nextLine();
+				if (input.equals("First") || input.equals("Economy"))
+					count++;
+				else
+					System.out.println("Wrong input");
+				if (count > 0) {
+					displayManifest(input, plane);
+				}
+			} else if (a.equals("Q")) {
+				ch = "Q";
+				Quit(plane);
+			}
+		}
+	}
+
+	/**
+	 * Method of adding passenger
+	 * 
+	 * @param p
+	 *            Passenger being added
+	 * @param plane
+	 *            Airplane
+	 * @return String of reserved seat
+	 */
+	public static String addPassenger(Passenger p, Airplane plane) {
+		String seat = "Request Failed";
+
+		if (p.serviceClass.equals("First"))
+			seat = plane.firstPas(p.seatPref, plane, p);
+
+		else if (p.serviceClass.equals("Economy"))
+			seat = plane.ecoPas(p.seatPref, plane, p);
+
+		return seat;
+	}
+
+	/**
+	 * Method of adding group
+	 * 
+	 * @param list
+	 *            Arraylist of passengers being added
+	 * @param p
+	 *            Passenger being added
+	 * @param plane
+	 *            Airplane
+	 * @return String of reserved seats
+	 */
+	public static String addGroup(ArrayList<Passenger> list, Passenger p, Airplane plane) {
+		String seat = "Request Failed";
+
+		if (p.serviceClass.equals("First"))
+			seat = plane.fiGroPas(list, plane);
+		else if (p.serviceClass.equals("Economy"))
+			seat = plane.ecoGroPas(list, plane);
+
+		return seat;
+	}
+
+	/**
+	 * Cancels the reservation
+	 * 
+	 * @param type
+	 *            Individual or Group
+	 * @param name
+	 *            Name being canceled
+	 * @param plane
+	 *            Airplane
+	 */
+	public static void cancelReservations(String type, String name, Airplane plane) {
+		int found = 0;
+
+		if (type.equals("I")) // individual
+		{
+			for (int i = 0; i < plane.rowF && found != 1; i++) {
+				for (int j = 0; j < plane.colF && found != 1; j++) {
+					if (plane.fir[i][j] != null)
+						if (plane.fir[i][j].Name.equals(name)) {
+							found = 1;
+							plane.fir[i][j] = null;
+						}
+				}
+			}
+
+			for (int i = 0; i < plane.rowE && found != 1; i++) {
+				for (int j = 0; j < plane.colE && found != 1; j++) {
+					if (plane.eco[i][j] != null)
+						if (plane.eco[i][j].Name.equals(name)) {
+							found = 1;
+							plane.eco[i][j] = null;
+						}
+				}
+			}
+		} else if (type.equals("G")) // group
+		{
+			for (int i = 0; i < plane.rowF; i++) {
+				for (int j = 0; j < plane.colF; j++) {
+					if (plane.fir[i][j] != null && plane.fir[i][j].grwp != null)
+						if (plane.fir[i][j].grwp.equals(name)) {
+
+							plane.fir[i][j] = null;
+						}
+				}
+			}
+
+			for (int i = 0; i < plane.rowE; i++) {
+				for (int j = 0; j < plane.colE; j++) {
+					if (plane.eco[i][j] != null && plane.eco[i][j].grwp != null)
+						if (plane.eco[i][j].grwp.equals(name)) {
+							plane.eco[i][j] = null;
+						}
+				}
+			}
+		} else
+			System.out.println("Not correct Input");
+	}
+
+	/**
+	 * Prints Available seating
+	 * 
+	 * @param c
+	 *            Type of class
+	 * @param plane
+	 *            Airplane
+	 */
+	public static void printAvailability(String c, Airplane plane) {
+		int num = 0;
+		int count = 0;
+		int len = 0;
+
+		if (c.equals("First")) {
+			System.out.println("First");
+
+			for (int i = 0; i < plane.rowF; i++) {
+				for (int k = 0; k < plane.colF; k++) {
+					if (plane.fir[i][k] == null)
+						len++;
+				}
+				for (int j = 0; j < plane.colF; j++) {
+					if (plane.fir[i][j] == null) {
+						if (num == 0) {
+							System.out.printf("%d: ", i + 1);
+							num++;
+						}
+						System.out.print(plane.Converter(j, "First"));
+						if (len > 1) {
+							System.out.print(",");
+							len--;
+						}
+						count++;
+					}
+				}
+				if (count > 0)
+					System.out.println();
+				num = 0;
+				count = 0;
+				len = 0;
+			}
+		} else if (c.equals("Economy")) {
+			System.out.println("Economy");
+
+			for (int i = 0; i < plane.rowE; i++) {
+				for (int k = 0; k < plane.colE; k++) {
+					if (plane.eco[i][k] == null)
+						len++;
+				}
+				for (int j = 0; j < plane.colE; j++) {
+					if (plane.eco[i][j] == null) {
+						if (num == 0) {
+							System.out.printf("%d: ", i + 10);
+							num++;
+						}
+						System.out.print(plane.Converter(j, "Economy"));
+						if (len > 1) {
+							len--;
+							System.out.print(",");
+						}
+						count++;
+					}
+				}
+				if (count > 0)
+					System.out.println();
+				num = 0;
+				count = 0;
+				len = 0;
+			}
+		} else
+			System.out.println("gg WP");
+	}
+
+	/**
+	 * Displays Manifest of plane
+	 * 
+	 * @param c
+	 *            Type of class
+	 * @param plane
+	 *            Airplane
+	 */
+	public static void displayManifest(String c, Airplane plane) {
+		int count = 0;
+		if (c.equals("First")) {
+			System.out.println("First");
+			for (int i = 0; i < plane.rowF; i++) {
+				for (int j = 0; j < plane.colF; j++) {
+					if (plane.fir[i][j] != null) {
+						System.out.printf("%d%s: %s\n", i + 1, plane.Converter(j, "First"),
+								plane.fir[i][j].Name.trim());
+						count++;
+					}
+				}
+			}
+			if (count == 0)
+				System.out.println("It's so lonely here");
+		} else if (c.equals("Economy")) {
+			System.out.println("Economy");
+			for (int i = 0; i < plane.rowE; i++) {
+				for (int j = 0; j < plane.colE; j++) {
+					if (plane.eco[i][j] != null) {
+						System.out.printf("%d%s: %s\n", i + 10, plane.Converter(j, "Economy"), plane.eco[i][j].Name);
+						count++;
+					}
+				}
+			}
+			if (count == 0)
+				System.out.println("It's so lonely here!");
+		} else
+			System.out.println("Wrong input");
+	}
+
+	/**
+	 * For quitting the airplane
+	 * 
+	 * @param plane
+	 *            plane type being passed in
+	 * @throws FileNotFoundException
+	 *             If the damn file isn't found
+	 */
+	public static void Quit(Airplane plane) throws FileNotFoundException {
+		PrintWriter out = new PrintWriter("CL34");
+		int count = 0;
+		for (int i = 0; i < plane.rowF; i++) {
+			for (int j = 0; j < plane.colF; j++) {
+				if (plane.fir[i][j] != null) {
+					if (plane.fir[i][j].grwp != null) {
+						out.printf("%d%s, G, %s, %s\n", i + 1, plane.Converter(j, "First"), plane.fir[i][j].grwp,
+								plane.fir[i][j].Name);
+					} else
+						out.printf("%d%s, I, %s\n", i + 1, plane.Converter(j, "First"), plane.fir[i][j].Name);
+					count++;
+				}
+			}
+		}
+		for (int i = 0; i < plane.rowE; i++) {
+			for (int j = 0; j < plane.colE; j++) {
+				if (plane.eco[i][j] != null) {
+					if (plane.eco[i][j].grwp != null) {
+						out.printf("%d%s, G, %s, %s\n", i + 10, plane.Converter(j, "Economy"), plane.eco[i][j].grwp,
+								plane.eco[i][j].Name);
+					} else
+						out.printf("%d%s, I, %s\n", i + 10, plane.Converter(j, "Economy"), plane.eco[i][j].Name);
+					count++;
+				}
+			}
+		}
+
+		if (count == 0)
+			out.println("It's so lonely here");
+		out.close();
+	}
+}

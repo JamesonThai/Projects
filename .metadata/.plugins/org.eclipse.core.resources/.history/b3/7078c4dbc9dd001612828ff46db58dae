@@ -1,0 +1,440 @@
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.GregorianCalendar;
+import java.util.Scanner;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.ListSelectionModel;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.table.DefaultTableModel;
+
+/**
+ * Controller class of Calendar Gui
+ * 
+ * @author Jameson Thai 
+ * 		Citation : http://www.dreamincode.net/forums/topic/25042-creating-a-calendar-viewer-application/
+ */
+public class SimpleCalendar {
+	static CalendarView2 CalView = new CalendarView2();
+	static CalendarModel CalMod = new CalendarModel();
+
+	/**
+	 * to do: Make text visible in textArea Events and Get textFields from
+	 * clicking save button Need to read in files and populate
+	 * @param args argument parameters 
+	 * @throws FileNotFoundException exception thrown if not found
+	 */
+	public static void main(String args[]) throws FileNotFoundException {
+	
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (ClassNotFoundException e) {
+		} catch (InstantiationException e) {
+		} catch (IllegalAccessException e) {
+		} catch (UnsupportedLookAndFeelException e) {
+		}
+
+		File in = new File("events.txt");
+		if (in.exists()) {
+			ArrayList<String> inputs = new ArrayList<String>();
+			String temp = "";
+			Scanner red = new Scanner(in);
+			while (red.hasNextLine()) {
+				temp = red.nextLine();
+				inputs.add(temp);
+			}
+			red.close();
+			CalMod.addInitialEvents(inputs);
+		} else {
+			System.out.println("This is first run!");
+		}
+
+		// Frame preparation
+		CalView.frmMain = new JFrame("Calendar"); // Create frame
+		CalView.frmMain.setSize(CalView.frameSizeX, CalView.frameSizeY);
+		CalView.pane = CalView.frmMain.getContentPane(); // Get content pane
+		CalView.pane.setLayout(null); // Apply null layout
+		CalView.frmMain.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // Close
+																		// when
+																		// X is
+																		// clicked
+
+		// Create controls
+		CalView.lblMonth = new JLabel("January");
+		CalView.eventlblMonth = new JLabel("Date: ");
+		CalView.createName = new JLabel("Name");
+		CalView.createTimeE = new JLabel("01:20");
+		CalView.createTimeS = new JLabel("09:20");
+
+		CalView.btnPrev = new JButton("Prev");
+		CalView.btnNext = new JButton("Next");
+		CalView.quit = new JButton("Quit");
+		CalView.create = new JButton("Create");
+		CalView.save = new JButton("Save");
+
+		CalView.mtblCalendar = new DefaultTableModel() {
+			public boolean isCellEditable(int rowIndex, int mColIndex) {
+				return false;
+			}
+		}; // disallows overwriting within cell
+		CalView.tblCalendar = new JTable(CalView.mtblCalendar);
+		CalView.stblCalendar = new JScrollPane(CalView.tblCalendar);
+		CalView.pnlCalendar = new JPanel(null);
+		CalView.eventList = new JPanel(null);
+		CalView.out = new JTextArea();
+
+		// Set border
+		CalView.pnlCalendar.setBorder(BorderFactory.createTitledBorder("Calendar"));
+		CalView.eventList.setBorder(BorderFactory.createTitledBorder("Events"));
+
+		// Register action listeners
+		CalView.btnPrev.addActionListener(new btnPrev_Action());
+		CalView.btnNext.addActionListener(new btnNext_Action());
+		CalView.quit.addActionListener(new btnQuit_Action());
+		CalView.create.addActionListener(new btnCre_Action());
+		CalMod.addChangeListener(new chngListen());
+
+		// * add text areas to frame and not panel
+		CalView.out.setEditable(false);
+
+		// Add panels to container
+		CalView.pane.add(CalView.eventList);
+		CalView.pane.add(CalView.pnlCalendar);
+
+		CalView.eventList.add(CalView.eventlblMonth);
+		CalView.eventList.add(CalView.out);
+
+		// Adding controls to calendar Pane
+		CalView.pnlCalendar.add(CalView.lblMonth);
+		CalView.pnlCalendar.add(CalView.btnPrev);
+		CalView.pnlCalendar.add(CalView.btnNext);
+		CalView.pnlCalendar.add(CalView.quit);
+		CalView.pnlCalendar.add(CalView.create);
+		CalView.pnlCalendar.add(CalView.stblCalendar);
+
+		// Set bounds
+		CalView.pnlCalendar.setBounds(0, 0, 350, 450); // Contains constraints
+														// for calendar
+		CalView.eventList.setBounds(370, 0, 350, 400);
+
+		CalView.lblMonth.setBounds(100 - CalView.lblMonth.getPreferredSize().width / 2, 25, 80, 25); // changes
+																										// for
+																										// Month
+		CalView.quit.setBounds(10, 305, 60, 25);
+		CalView.create.setBounds(80, 305, 100, 25);
+		CalView.btnPrev.setBounds(10, 25, 60, 25);
+		CalView.btnNext.setBounds(220, 25, 60, 25);
+		CalView.stblCalendar.setBounds(10, 50, 300, 250);
+
+		CalView.eventlblMonth.setBounds(10, 20, 300, 25);
+		CalView.out.setBounds(10, 50, 325, 325);
+
+		// Make frame visible
+		CalView.frmMain.setResizable(false);
+		CalView.frmMain.setVisible(true);
+
+		// Get real month/year
+		GregorianCalendar cal = new GregorianCalendar(); // Create calendar
+		CalView.realDay = cal.get(GregorianCalendar.DAY_OF_MONTH); // Get day
+		CalView.realMonth = cal.get(GregorianCalendar.MONTH); // Get month
+		CalView.realYear = cal.get(GregorianCalendar.YEAR); // Get year
+		CalView.currentMonth = CalView.realMonth; // Match month and year
+		CalView.currentYear = CalView.realYear;
+		CalView.currentDay = CalView.realDay;
+
+		// Add headers
+		String[] headers = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" }; // All
+																				// headers
+		for (int i = 0; i < 7; i++) {
+			CalView.mtblCalendar.addColumn(headers[i]);
+		}
+
+		CalView.tblCalendar.getParent().setBackground(CalView.tblCalendar.getBackground()); // Set
+																							// background
+
+		// No resize/reorder
+		CalView.tblCalendar.getTableHeader().setResizingAllowed(false);
+		CalView.tblCalendar.getTableHeader().setReorderingAllowed(false);
+
+		// Single cell selection
+		// Modification
+		CalView.tblCalendar.addMouseListener(new MouseAdapter() {
+			public void mouseClicked(MouseEvent e) {
+				int col = CalView.tblCalendar.columnAtPoint(e.getPoint());
+				int row = CalView.tblCalendar.rowAtPoint(e.getPoint());
+			}
+		});
+
+		CalView.tblCalendar.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		CalView.tblCalendar.setColumnSelectionAllowed(true);
+		CalView.tblCalendar.setRowSelectionAllowed(true);
+
+		// Set row/column count
+		CalView.tblCalendar.setRowHeight(38);
+		CalView.mtblCalendar.setColumnCount(7);
+		CalView.mtblCalendar.setRowCount(6);
+
+		// Refresh calendar
+		CalendarView2.refreshCalendar(CalView.realDay, CalView.realMonth, CalView.realYear); // Refresh
+																								// calendar
+	}
+
+	/**
+	 * Action Listener that responds to previous click
+	 * 
+	 * @author Jameson Thai
+	 *
+	 */
+	static class btnPrev_Action implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			GregorianCalendar cal = new GregorianCalendar(CalView.currentYear, CalView.currentMonth, 1);
+			int num = cal.getActualMinimum(GregorianCalendar.DAY_OF_MONTH);
+			if (CalView.currentDay == num && CalView.currentMonth == 0) {
+				CalView.currentMonth = 11;
+				CalView.currentYear--;
+				CalView.currentDay = cal.getActualMaximum(GregorianCalendar.DAY_OF_MONTH);
+
+			} else if (CalView.currentDay == num) {
+				CalView.currentMonth--;
+				cal = new GregorianCalendar(CalView.currentYear, CalView.currentMonth, 1);
+				CalView.currentDay = cal.getActualMaximum(GregorianCalendar.DAY_OF_MONTH);
+
+			} else
+				CalView.currentDay--;
+			CalView.eventDate = CalView.currentDay;
+			CalView.refreshCalendar(CalView.currentDay, CalView.currentMonth, CalView.currentYear);
+
+			CalView.currentDate = CalView.DateCheckerandConversion(CalView.eventDate, CalView.currentMonth,
+					CalView.currentYear);
+			ArrayList temp = new ArrayList();
+			CalView.refreshEventList(CalView.currentDate, temp);
+		}
+	}
+
+	/**
+	 * Button that responds to next Button clicked
+	 * 
+	 * @author Jameson Thai
+	 *
+	 */
+	static class btnNext_Action implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			GregorianCalendar cal = new GregorianCalendar(CalView.currentYear, CalView.currentMonth, 1);
+			int num = cal.getActualMaximum(GregorianCalendar.DAY_OF_MONTH);
+
+			if (CalView.currentDay == num && CalView.currentMonth == 11) {
+				CalView.currentDay = cal.getActualMinimum(GregorianCalendar.DAY_OF_MONTH);
+				CalView.currentMonth = 0;
+				CalView.currentYear++;
+			} else if (CalView.currentDay == num) {
+				CalView.currentMonth++;
+				cal = new GregorianCalendar(CalView.currentYear, CalView.currentMonth, 1);
+				CalView.currentDay = cal.getActualMinimum(GregorianCalendar.DAY_OF_MONTH);
+			} else
+				CalView.currentDay++;
+
+			CalView.refreshCalendar(CalView.currentDay, CalView.currentMonth, CalView.currentYear);
+			CalView.eventDate = CalView.currentDay;
+			CalView.currentDate = CalView.DateCheckerandConversion(CalView.eventDate, CalView.currentMonth,
+					CalView.currentYear);
+			ArrayList temp = new ArrayList();
+			CalView.refreshEventList(CalView.currentDate, temp);
+		}
+	}
+
+	/**
+	 * Action Listener that responds to quitting event
+	 * 
+	 * @author Jameson Thai
+	 *
+	 */
+	static class btnQuit_Action implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+
+			JFrame frmMain2 = new JFrame("Quit");
+			JLabel ending = new JLabel("That's all folks!");
+			JLabel ending2 = new JLabel("Click X to quit");
+			Container pane2;
+			JPanel Quitting = new JPanel(null);
+
+			frmMain2.setSize(200, 100);
+			pane2 = frmMain2.getContentPane(); // Get content pane
+			pane2.setLayout(null); // Apply null layout
+			frmMain2.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+			Quitting.setBorder(BorderFactory.createTitledBorder("Ending"));
+			pane2.add(Quitting);
+			Quitting.add(ending);
+			Quitting.add(ending2);
+			Quitting.setBounds(0, 0, 180, 90);
+			ending.setBounds(10, 20, 100, 25);
+			ending2.setBounds(10, 45, 100, 25);
+			frmMain2.setResizable(false);
+			frmMain2.setVisible(true);
+
+			try {
+				CalMod.quit();
+			} catch (FileNotFoundException e1) {
+				System.out.println("FileNotFound");
+			}
+		}
+	}
+
+	/**
+	 * Action listener to save events from create event
+	 * 
+	 * @author Jameson Thai
+	 *
+	 */
+	static class btnNext_Action2 implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			String[] t = CalView.currentDate.split("/");
+			int tempNum = Integer.parseInt(t[0]) + 1;
+			String tempString;
+			if (tempNum < 10)
+				tempString = "0" + tempNum;
+			else
+				tempString = Integer.toString(tempNum);
+			String s = tempString + "/" + t[1] + "/" + t[2];
+			String tempName = CalView.evenName.getText();
+			String tempCTS = CalView.eventStart.getText();
+			String tempCTE = CalView.eventEnd.getText();
+
+			// Not properly saving tempName, tempCTS, tempCTE
+
+			JFrame frmMain2 = new JFrame("Create");
+			JLabel msg1 = new JLabel("Created");
+			JLabel msg2 = new JLabel("TimeConfliction Error!");
+
+			Container pane2;
+			JPanel Quitting = new JPanel(null);
+			frmMain2.setSize(220, 100);
+			pane2 = frmMain2.getContentPane(); // Get content pane
+			pane2.setLayout(null); // Apply null layout
+
+			Quitting.setBorder(BorderFactory.createTitledBorder("Status"));
+			pane2.add(Quitting);
+			if (CalMod.create(s, tempName, tempCTS, tempCTE) == false) {
+				Quitting.add(msg2);
+			} else {
+				Quitting.add(msg1);
+				CalMod.add(CalView.evenName.getText());
+				CalMod.add(CalView.eventStart.getText());
+				CalMod.add(CalView.eventEnd.getText());
+			}
+
+			Quitting.setBounds(0, 0, 200, 80);
+			msg1.setBounds(10, 10, 150, 25);
+			msg2.setBounds(10, 10, 150, 25);
+
+			frmMain2.setResizable(false);
+			frmMain2.setVisible(true);
+			frmMain2.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		}
+	}
+
+	/**
+	 * Change Listener
+	 * 
+	 * @author Jameson Thai
+	 *
+	 */
+	static class chngListen implements ChangeListener {
+
+		@Override
+		public void stateChanged(ChangeEvent e) {
+			// TODO Auto-generated method stub
+			CalView.out.setText(CalMod.toString(CalMod));
+		}
+
+	}
+
+	/**
+	 * Action Listener to create an event
+	 * 
+	 * @author Jameson Thai
+	 *
+	 */
+	static class btnCre_Action implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			JFrame frmMain2 = new JFrame("Create");
+			JLabel ending2 = new JLabel("To");
+			JLabel msg1 = new JLabel("Input Name:");
+			JLabel msg2 = new JLabel("Input Start Time");
+			JLabel msg3 = new JLabel("Input End Time");
+			JLabel msg4 = new JLabel("Time ex: 03:24");
+			Container pane2;
+			JPanel Quitting = new JPanel(null);
+			JTextArea evenName = new JTextArea();
+			JTextArea eventStart = new JTextArea();
+			JTextArea eventEnd = new JTextArea();
+
+			frmMain2.setSize(400, 200);
+			pane2 = frmMain2.getContentPane(); // Get content pane
+			pane2.setLayout(null); // Apply null layout
+
+			Quitting.setBorder(BorderFactory.createTitledBorder("Ending"));
+
+			CalView.save.addActionListener(new btnNext_Action2());
+
+			evenName.setBackground(Color.white);
+			evenName.setEditable(true);
+			eventStart.setBackground(Color.white);
+			eventStart.setEditable(true);
+			eventEnd.setBackground(Color.white);
+			eventEnd.setEditable(true);
+
+			pane2.add(Quitting);
+			Quitting.add(CalView.eventlblMonth);
+			Quitting.add(ending2);
+			Quitting.add(evenName);
+			Quitting.add(eventStart);
+			Quitting.add(eventEnd);
+			Quitting.add(msg1);
+			Quitting.add(msg2);
+			Quitting.add(msg3);
+			Quitting.add(CalView.save);
+			Quitting.add(msg4);
+			Quitting.setBounds(0, 0, 380, 180);
+
+			CalView.eventlblMonth.setBounds(10, 20, 200, 25);
+			msg1.setBounds(10, 40, 100, 20);
+			evenName.setBounds(10, 60, 300, 25);
+			msg2.setBounds(10, 100, 150, 25);
+			msg3.setBounds(150, 100, 100, 25);
+			msg4.setBounds(250, 20, 100, 25);
+			eventStart.setBounds(10, 130, 80, 25);
+			ending2.setBounds(100, 130, 50, 25);
+			eventEnd.setBounds(150, 130, 80, 25);
+			CalView.save.setBounds(250, 130, 100, 25);
+
+			CalView.createName.setText(evenName.getText());
+			CalView.createTimeS.setText(eventStart.getText());
+			CalView.createTimeE.setText(eventEnd.getText());
+
+			frmMain2.setResizable(false);
+			frmMain2.setVisible(true);
+			frmMain2.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+		}
+	}
+
+}
